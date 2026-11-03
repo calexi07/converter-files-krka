@@ -1,0 +1,1 @@
+Tesseract language data (tessdata_best, converted to integer models by the tesseract.js project) is licensed under Apache License 2.0 — https://github.com/tesseract-ocr/tessdata_best
