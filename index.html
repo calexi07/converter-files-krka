@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Privacy: the page may only connect to its own address. Documents cannot be sent anywhere. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data:; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>PDF to Excel Converter · KRKA</title>
+<link rel="icon" href="assets/favicon.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="inner">
+    <img class="logo" src="assets/krka-logo.png" alt="KRKA">
+    <div class="divider-v"></div>
+    <div>
+      <h1 class="app-title">PDF to Excel Converter</h1>
+      <p class="app-sub">Convert PDF documents into structured, editable Excel spreadsheets.</p>
+    </div>
+    <div class="header-right">
+      <svg class="lock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+      Processed locally in your browser
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= UPLOAD + SETTINGS ================= -->
+<section id="view-main">
+  <div class="grid-main">
+    <div class="card">
+      <div class="card-h"><h2>Documents</h2><span class="badge b-neutral" id="file-count" hidden></span></div>
+      <div class="card-b">
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add PDF files">
+          <svg class="dz-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M14 6h14l10 10v24a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M28 6v10h10"/><path d="M25 36V22m-6 6 6-6 6 6"/></svg>
+          <div class="dz-text">
+            <p class="dz-title">Drag and drop PDF files here</p>
+            <p class="dz-sub">or select them from your computer · multiple files allowed</p>
+          </div>
+          <button class="btn" id="browse-btn" type="button">Browse files</button>
+          <input type="file" id="file-input" accept="application/pdf,.pdf" multiple class="sr-only" tabindex="-1">
+        </div>
+        <div id="upload-alerts"></div>
+        <div class="files-h" id="files-h" hidden><span id="files-total"></span><button class="btn btn-ghost btn-sm" id="remove-all" type="button">Remove all</button></div>
+        <ul class="files" id="file-list" hidden></ul>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <div class="card-h"><h2>Conversion settings</h2></div>
+        <div class="card-b">
+          <div class="set-group">
+            <div class="set-label">Extraction mode</div>
+            <div class="seg" id="mode-group">
+              <label class="opt sel"><input type="radio" name="mode" value="auto" checked><span>Automatic <span class="badge b-ok">Recommended</span><small>Text where possible, OCR only for scanned pages</small></span></label>
+              <label class="opt"><input type="radio" name="mode" value="digital"><span>Digital PDF only<small>Fastest. Scanned pages are skipped</small></span></label>
+              <label class="opt"><input type="radio" name="mode" value="ocr"><span>OCR (scanned documents)<small>Reads every page as an image. Slower</small></span></label>
+            </div>
+          </div>
+          <div class="set-group">
+            <div class="set-label">OCR language</div>
+            <select id="ocr-lang">
+              <option value="ron+eng">Romanian + English</option>
+              <option value="ron">Romanian</option>
+              <option value="eng">English</option>
+            </select>
+          </div>
+          <div class="set-group">
+            <div class="set-label">Excel structure</div>
+            <select id="structure">
+              <option value="per-table">One worksheet per table</option>
+              <option value="per-pdf">One worksheet per PDF</option>
+              <option value="combine">Combine compatible tables</option>
+            </select>
+          </div>
+          <div class="set-group" style="margin-bottom:0">
+            <div class="set-label">Include</div>
+            <label class="chk"><input type="checkbox" id="opt-summary" checked> Conversion Summary sheet</label>
+            <label class="chk"><input type="checkbox" id="opt-file"> Source filename column</label>
+            <label class="chk"><input type="checkbox" id="opt-page" checked> Page number column</label>
+            <label class="chk"><input type="checkbox" id="opt-tableno"> Table number column</label>
+            <label class="chk"><input type="checkbox" id="opt-layout" checked> Preserve original layout where possible</label>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn btn-primary btn-lg" id="convert-btn" type="button" disabled>Convert to Excel</button>
+        <div class="privacy">
+          <svg class="lock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" style="flex:none;margin-top:2px" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+          <span>Your documents are processed directly in your browser. Files are not uploaded to external processing servers.</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= PROCESSING ================= -->
+<section id="view-processing" hidden>
+  <div class="card">
+    <div class="card-h"><h2>Converting documents</h2><span class="badge b-neutral" id="p-filepos"></span><span style="margin-left:auto"><button class="btn btn-sm btn-danger-text" id="cancel-btn" type="button">Cancel</button></span></div>
+    <div class="card-b">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+        <div><b id="p-name"></b> <span class="badge b-ocr" id="p-ocrbadge" style="margin-left:6px" hidden>OCR</span></div>
+        <div class="mono" style="color:var(--text-muted)" id="p-pagepos"></div>
+      </div>
+      <div class="prog-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="p-bar-wrap"><div class="prog" id="p-bar" style="width:0%"></div></div>
+      <div class="fmeta mono" id="p-sub"></div>
+      <dl class="kv">
+        <div><dt>Current page</dt><dd class="mono" id="p-page">–</dd></div>
+        <div><dt>Method</dt><dd id="p-method">–</dd></div>
+        <div><dt>OCR status</dt><dd id="p-ocr">Not needed</dd></div>
+        <div><dt>Elapsed</dt><dd class="mono" id="p-elapsed">0 s</dd></div>
+      </dl>
+      <div class="alert alert-info" id="p-info" hidden></div>
+    </div>
+    <div class="card-b" style="border-top:1px solid var(--border)"><ul class="queue" id="p-queue"></ul></div>
+  </div>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section id="view-results" hidden>
+  <div class="card">
+    <div class="card-h"><h2>Conversion results</h2><span class="badge b-neutral" id="r-count"></span>
+      <span style="margin-left:auto;display:flex;gap:8px"><button class="btn btn-sm" id="reset-btn" type="button">Convert other documents</button><button class="btn btn-primary btn-sm" id="download-all" type="button" hidden>Download all (.zip)</button></span></div>
+    <div id="r-list"></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="card-b">
+    <div class="set-label">What the statuses mean</div>
+    <div class="legend">
+      <div><span class="badge b-ok">Success</span><br>All detected content extracted, no issues found.</div>
+      <div><span class="badge b-warn">Success with warnings</span><br>Completed, but some values need a human check.</div>
+      <div><span class="badge b-partial">Partial conversion</span><br>Some pages or content couldn't be extracted reliably.</div>
+      <div><span class="badge b-fail">Failed</span><br>The document couldn't be processed.</div>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:0">"Completed" means the file was processed. It does not guarantee every value is correct — always check flagged cells, especially from scanned pages.</div>
+  </div></div>
+</section>
+
+<!-- ================= PREVIEW / EDITOR ================= -->
+<section id="view-preview" hidden></section>
+
+</main>
+
+<footer>
+  <span><span class="f-brand">KRKA</span> · Internal tool · PDF to Excel Converter v1.0</span>
+  <span>Documents never leave this computer.</span>
+</footer>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script src="libraries/tesseract/tesseract.min.js"></script>
+<script src="libraries/exceljs/exceljs.min.js"></script>
+<script src="libraries/jszip/jszip.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
